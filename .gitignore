@@ -1,6 +1,6 @@
 .env
 gpt_prompt_2_parallel.py
-chatbot-arena/chatbot_arena.csv
+chatbot-arena/data/chatbot_arena.csv
 venv/
 *venv/
 .venv/
