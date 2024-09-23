@@ -1,0 +1,140 @@
+Model,Arena Score
+ChatGPT-4o-latest (2024-09-03),1336
+Gemini-1.5-Pro-Exp-0827,1299
+Grok-2-08-13,1294
+GPT-4o-2024-05-13,1285
+GPT-4o-mini-2024-07-18,1273
+Claude 3.5 Sonnet,1269
+Gemini-1.5-Flash-Exp-0827,1269
+Grok-2-Mini-08-13,1268
+Gemini Advanced App (2024-05-14),1266
+Meta-Llama-3.1-405b-Instruct-bf16,1266
+Meta-Llama-3.1-405b-Instruct-fp8,1266
+GPT-4o-2024-08-06,1263
+Gemini-1.5-Pro-001,1259
+GPT-4-Turbo-2024-04-09,1257
+Deepseek-v2.5,1251
+Athene-70b,1250
+Mistral-Large-2407,1251
+GPT-4-1106-preview,1251
+Meta-Llama-3.1-70b-Instruct,1248
+Claude 3 Opus,1248
+GPT-4-0125-preview,1245
+Yi-Large-preview,1240
+Reka-Core-20240722,1230
+Qwen-Plus-0828,1227
+Gemini-1.5-Flash-001,1227
+Jamba-1.5-Large,1220
+Deepseek-v2-API-0628,1219
+Gemma-2-27b-it,1218
+Gemma-2-9b-it-SimPO,1215
+Command R+ (08-2024),1210
+Deepseek-Coder-v2-0724,1214
+Yi-Large,1212
+Nemotron-4-340B-Instruct,1209
+GLM-4-0520,1206
+Gemini-1.5-Flash-8b-Exp-0827,1205
+Llama-3-70b-Instruct,1206
+Claude 3 Sonnet,1201
+Reka-Flash-20240722,1200
+Reka-Core-20240501,1200
+Command R+ (04-2024),1190
+Gemma-2-9b-it,1188
+Qwen2-72B-Instruct,1187
+GPT-4-0314,1186
+GLM-4-0116,1183
+Qwen-Max-0428,1183
+DeepSeek-Coder-V2-Instruct,1178
+Claude 3 Haiku,1179
+Jamba-1.5-Mini,1176
+Command R (08-2024),1171
+Meta-Llama-3.1-8b-Instruct,1170
+Reka-Flash-Preview-20240611,1165
+GPT-4-0613,1163
+Qwen1.5-110B-Chat,1162
+Yi-1.5-34B-Chat,1157
+Mistral-Large-2402,1157
+Reka-Flash-21B-online,1156
+Llama-3-8b-Instruct,1152
+Claude-1,1149
+Command R (04-2024),1149
+Reka-Flash-21B,1147
+Mistral Medium,1148
+Mixtral-8x22b-Instruct-v0.1,1147
+Qwen1.5-72B-Chat,1147
+Gemma-2-2b-it,1135
+Claude-2.0,1132
+Gemini-1.0-Pro-001,1132
+Zephyr-ORPO-141b-A35b-v0.1,1127
+Qwen1.5-32B-Chat,1126
+Mistral-Next,1125
+Phi-3-Medium-4k-Instruct,1123
+Starling-LM-7B-beta,1119
+Claude-2.1,1118
+GPT-3.5-Turbo-0613,1117
+Claude-Instant-1,1111
+Yi-34B-Chat,1111
+Gemini Pro,1111
+GPT-3.5-Turbo-0314,1107
+Mixtral-8x7b-Instruct-v0.1,1114
+Qwen1.5-14B-Chat,1109
+WizardLM-70B-v1.0,1106
+GPT-3.5-Turbo-0125,1106
+DBRX-Instruct-Preview,1103
+Phi-3-Small-8k-Instruct,1102
+Tulu-2-DPO-70B,1099
+Llama-2-70b-chat,1093
+OpenChat-3.5-0106,1092
+Vicuna-33B,1091
+Snowflake Arctic Instruct,1090
+Starling-LM-7B-alpha,1088
+Nous-Hermes-2-Mixtral-8x7B-DPO,1084
+NV-Llama2-70B-SteerLM-Chat,1081
+Gemma-1.1-7b-it,1084
+DeepSeek-LLM-67B-Chat,1077
+pplx-70b-online,1078
+OpenChat-3.5,1076
+OpenHermes-2.5-Mistral-7b,1075
+Mistral-7B-Instruct-v0.2,1072
+Phi-3-Mini-4k-Instruct-June-24,1071
+Qwen1.5-7B-Chat,1070
+GPT-3.5-Turbo-1106,1068
+Dolphin-2.2.1-Mistral-7B,1062
+Phi-3-Mini-4k-Instruct,1066
+SOLAR-10.7B-Instruct-v1.0,1062
+Llama-2-13b-chat,1063
+WizardLM-13b-v1.2,1059
+Zephyr-7b-beta,1054
+CodeLlama-70B-instruct,1044
+MPT-30B-chat,1046
+pplx-7b-online,1045
+Zephyr-7b-alpha,1041
+falcon-180b-chat,1034
+CodeLlama-34B-instruct,1043
+Vicuna-13B,1042
+Gemma-7b-it,1038
+Phi-3-Mini-128k-Instruct,1037
+Llama-2-7b-chat,1037
+Qwen-14B-Chat,1035
+Guanaco-33B,1033
+Gemma-1.1-2b-it,1021
+StripedHyena-Nous-7B,1018
+OLMo-7B-instruct,1016
+Mistral-7B-Instruct-v0.1,1008
+Vicuna-7B,1005
+PaLM-Chat-Bison-001,1004
+Gemma-2b-it,989
+Qwen1.5-4B-Chat,988
+Koala-13B,965
+ChatGLM3-6B,956
+GPT4All-13B-Snoozy,932
+MPT-7B-Chat,928
+ChatGLM2-6B,924
+RWKV-4-Raven-14B,922
+Alpaca-13B,902
+OpenAssistant-Pythia-12B,893
+ChatGLM-6B,879
+FastChat-T5-3B,868
+StableLM-Tuned-Alpha-7B,840
+Dolly-V2-12B,822
+LLaMA-13B,799

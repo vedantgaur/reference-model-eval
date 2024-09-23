@@ -1,0 +1,8 @@
+.env
+gpt_prompt_2_parallel.py
+chatbot-arena/chatbot_arena.csv
+venv/
+*venv/
+.venv/
+env/
+virtualenv/

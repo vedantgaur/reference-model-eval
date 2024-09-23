@@ -1,0 +1,27 @@
+Model,Arena Score
+Yi-Large-preview,1240
+Claude 3 Opus,1248
+Meta-Llama-3.1-405b-Instruct,1266
+GPT-4,1245
+Qwen2-72B-Instruct,1187
+Meta-Llama-3.1-70b-Instruct,1248
+Qwen1.5-72B-Chat,1147
+Claude 3.5 Sonnet,1269
+Llama-3-70b-Instruct,1206
+Mistral-Large-2402,1157
+Mixtral-8x22b-Instruct-v0.1,1147
+Mistral Medium,1148
+Claude-2.0,1132
+Yi-34B-Chat,1157
+DBRX-Instruct-Preview,1103
+Claude-2.1,1118
+Gemini Pro,1111
+Qwen1.5-14B-Chat,1109
+Mixtral-8x7b-Instruct-v0.1,1114
+Llama-3-8b-Instruct,1152
+Meta-Llama-3.1-8b-Instruct,1170
+OpenHermes-2.5-Mistral-7b,1075
+Qwen1.5-7B-Chat,1070
+Vicuna-13B,1042
+Vicuna-7B,1005
+Guanaco-33B,1033
