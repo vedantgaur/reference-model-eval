@@ -6,3 +6,4 @@ venv/
 .venv/
 env/
 virtualenv/
+chatbot-arena/data/chatbot_arena.csv
