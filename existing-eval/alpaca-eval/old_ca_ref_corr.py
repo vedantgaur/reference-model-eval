@@ -87,8 +87,8 @@ def main(alpaca_file, arena_file):
     return output
 
 if __name__ == "__main__":
-    alpaca_file = "data/alpaca_eval_scores.csv"
-    arena_file = "~/Projects/llm-eval/chatbot-arena/data/chatbot_arena_scores.csv"
+    alpaca_file = "existing-eval/alpaca-eval/data/alpaca_eval_scores.csv"
+    arena_file = "chatbot-arena/data/rankings/chatbot_arena_scores.csv"
     result = main(alpaca_file, arena_file)
     print(result)
     result.to_csv("output_matrix.csv", index=False)

@@ -1,0 +1,27 @@
+Model,Correlation_0-25%,Correlation_25-50%,Correlation_50-75%,Correlation_75-100%,Percentile_Range
+Yi-Large-preview,,,,,75-100%
+Claude 3 Opus,,,,,75-100%
+Meta-Llama-3.1-405b-Instruct,,,,,75-100%
+GPT-4,,,,,50-75%
+Qwen2-72B-Instruct,,,,,75-100%
+Meta-Llama-3.1-70b-Instruct,,,,,75-100%
+Qwen1.5-72B-Chat,,,,,50-75%
+Claude 3.5 Sonnet,,,,,50-75%
+Llama-3-70b-Instruct,,,,,75-100%
+Mistral-Large-2402,,,,,25-50%
+Mixtral-8x22b-Instruct-v0.1,,,,,50-75%
+Mistral Medium,,,,,50-75%
+Claude-2.0,,,,,0-25%
+Yi-34B-Chat,,,,,75-100%
+DBRX-Instruct-Preview,,,,,25-50%
+Claude-2.1,,,,,0-25%
+Gemini Pro,,,,,25-50%
+Qwen1.5-14B-Chat,,,,,25-50%
+Mixtral-8x7b-Instruct-v0.1,,,,,25-50%
+Llama-3-8b-Instruct,,,,,50-75%
+Meta-Llama-3.1-8b-Instruct,,,,,25-50%
+OpenHermes-2.5-Mistral-7b,,,,,0-25%
+Qwen1.5-7B-Chat,,,,,0-25%
+Vicuna-13B,,,,,0-25%
+Vicuna-7B,,,,,0-25%
+Guanaco-33B,,,,,0-25%

@@ -80,6 +80,10 @@ all_models = pd.unique(battles[['model_a', 'model_b']].values.ravel())
 model_counts = battles['model_a'].value_counts() + battles['model_b'].value_counts()
 top_20_models = model_counts.nlargest(20).index.tolist()
 
+def check_array_size(array1, array2):
+    """Check the size of the input arrays."""
+    return len(array1), len(array2)
+
 correlations = {}
 for model in top_20_models:
     model_leaderboard = compute_model_specific_leaderboard(model)
@@ -89,6 +93,10 @@ for model in top_20_models:
     original_ranks = original_leaderboard[common_models].rank(ascending=False, method='min')
     model_ranks = model_leaderboard[common_models].rank(ascending=False, method='min')
     
+    # Check sizes of the arrays before correlation
+    size_original, size_model = check_array_size(original_ranks, model_ranks)
+    print(f"Sizes for {model}: Original ranks size = {size_original}, Model ranks size = {size_model}")
+
     tau, _ = kendalltau(original_ranks, model_ranks)
     correlations[model] = tau
 
@@ -108,3 +116,28 @@ plt.tight_layout()
 plt.show()
 
 results_df.to_csv('model_correlations.csv')
+
+def plot_battle_frequencies(top_models, battles):
+    battle_counts = pd.DataFrame(0, index=top_models, columns=pd.unique(battles[['model_a', 'model_b']].values.ravel()))
+    
+    for _, row in battles.iterrows():
+        model_a = row['model_a']
+        model_b = row['model_b']
+        battle_counts.loc[model_a, model_b] += 1
+        battle_counts.loc[model_b, model_a] += 1 
+
+    battle_counts = battle_counts[top_models] 
+
+    plt.figure(figsize=(15, 8))
+    for model in top_models:
+        plt.plot(battle_counts.columns, battle_counts.loc[model], label=model)
+
+    plt.title("Battle Frequencies of Top 20 Models Against All Models")
+    plt.xlabel("Opponent Model")
+    plt.ylabel("Number of Battles")
+    plt.xticks(rotation=45, ha='right')
+    plt.legend(title="Top Models")
+    plt.tight_layout()
+    plt.show()
+
+plot_battle_frequencies(top_20_models, battles)
