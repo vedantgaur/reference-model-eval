@@ -85,22 +85,6 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
     
     return results, model_counts
 
-def analyze_correlations(results_df):
-    highest_correlations = {}
-    overall_highest = {'model': '', 'value': 0}
-    
-    for quartile in results_df.columns[1:-1:2]:
-        max_corr_value = results_df[quartile].max()
-        models_with_max_corr = results_df[results_df[quartile] == max_corr_value]['Model'].tolist()
-        model_count = results_df[f'{quartile}_count'].iloc[0]
-        highest_correlations[quartile] = (models_with_max_corr, max_corr_value, model_count)
-    
-    results_df['Average Correlation'] = results_df.iloc[:, 1:-1:2].mean(axis=1)
-    overall_highest['model'] = results_df.loc[results_df['Average Correlation'].idxmax(), 'Model']
-    overall_highest['value'] = results_df['Average Correlation'].max()
-    
-    return highest_correlations, overall_highest
-
 hf_data = load_dataset("lmsys/lmsys-arena-human-preference-55k")
 battles = pd.concat([hf_data[split].to_pandas() for split in hf_data.keys()])
 
@@ -130,14 +114,6 @@ results_df = pd.DataFrame(results, columns=columns)
 print("\nQuartile-based correlations:")
 print(results_df.to_string())
 results_df.to_csv('model_quartile_correlations.csv', index=False)
-
-highest_corrs, overall_highest = analyze_correlations(results_df)
-
-print("\nHighest correlations with each quartile:")
-for quartile, (models, value, count) in highest_corrs.items():
-    print(f"{quartile}: {models} (correlation: {value:.2f}, models compared: {count})")
-
-print(f"\nOverall highest correlation model: {overall_highest['model']} (average correlation: {overall_highest['value']:.2f})")
 
 plt.figure(figsize=(12, len(results_df) * 0.3))
 sns.heatmap(results_df.iloc[:, 1:-5], annot=True, cmap='coolwarm', center=0,
