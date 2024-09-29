@@ -4,37 +4,24 @@ from scipy.stats import kendalltau
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.linear_model import LogisticRegression
+from datasets import load_dataset
 
 def compute_mle_elo(df, SCALE=400, BASE=10, INIT_RATING=1000):
-    ptbl_a_win = pd.pivot_table(
-        df[df["winner"] == "model_a"],
-        index="model_a",
-        columns="model_b",
-        aggfunc="size",
-        fill_value=0,
-    )
+    all_models = pd.unique(df[['model_a', 'model_b']].values.ravel())
+    all_models = [model for model in all_models if isinstance(model, str)]
     
-    ptbl_tie = pd.DataFrame(0, index=ptbl_a_win.index, columns=ptbl_a_win.columns)
-    if "tie" in df["winner"].unique():
-        ptbl_tie = pd.pivot_table(
-            df[df["winner"] == "tie"],
-            index="model_a",
-            columns="model_b",
-            aggfunc="size",
-            fill_value=0,
-        )
-        ptbl_tie = ptbl_tie + ptbl_tie.T
+    ptbl_win = pd.DataFrame(0, index=all_models, columns=all_models)
+    
+    for _, row in df.iterrows():
+        if row['winner_model_a'] == 1:
+            ptbl_win.loc[row['model_a'], row['model_b']] += 2
+        elif row['winner_model_b'] == 1:
+            ptbl_win.loc[row['model_b'], row['model_a']] += 2
+        elif row['winner_tie'] == 1:
+            ptbl_win.loc[row['model_a'], row['model_b']] += 1
+            ptbl_win.loc[row['model_b'], row['model_a']] += 1
 
-    ptbl_b_win = pd.pivot_table(
-        df[df["winner"] == "model_b"],
-        index="model_a",
-        columns="model_b",
-        aggfunc="size",
-        fill_value=0,
-    )
-    ptbl_win = ptbl_a_win * 2 + ptbl_b_win.T * 2 + ptbl_tie
-
-    models = pd.Series(np.arange(len(ptbl_win.index)), index=ptbl_win.index)
+    models = pd.Series(np.arange(len(all_models)), index=all_models)
 
     p = len(models)
     X = np.zeros([p * (p - 1) * 2, p])
@@ -42,11 +29,9 @@ def compute_mle_elo(df, SCALE=400, BASE=10, INIT_RATING=1000):
 
     cur_row = 0
     sample_weights = []
-    for m_a in ptbl_win.index:
-        for m_b in ptbl_win.columns:
+    for m_a in all_models:
+        for m_b in all_models:
             if m_a == m_b:
-                continue
-            if np.isnan(ptbl_win.loc[m_a, m_b]) or np.isnan(ptbl_win.loc[m_b, m_a]):
                 continue
             X[cur_row, models[m_a]] = +np.log(BASE)
             X[cur_row, models[m_b]] = -np.log(BASE)
@@ -81,7 +66,7 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
         quartile_models = quartiles[quartiles == quartile].index
         common_models = list(set(quartile_models) & set(model_leaderboard.index))
         
-        if len(common_models) > 1:  # Need at least 2 models to calculate correlation
+        if len(common_models) > 1:
             original_ranks = original_leaderboard[common_models].rank(ascending=False, method='min')
             model_ranks = model_leaderboard[common_models].rank(ascending=False, method='min')
             
@@ -97,13 +82,19 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
     
     return results
 
-file_path = "/Users/vedantgaur/Projects/llm-eval/chatbot-arena/chatbot_arena.csv"
-battles = pd.read_csv(file_path)
+hf_data = load_dataset("lmsys/lmsys-arena-human-preference-55k")
+battles = pd.concat([hf_data[split].to_pandas() for split in hf_data.keys()])
+
+print("First few rows of the dataset:")
+print(battles.head())
 
 original_leaderboard = compute_mle_elo(battles)
 
 all_models = pd.unique(battles[['model_a', 'model_b']].values.ravel())
-print(f"Total number of models: {len(all_models)}")
+all_models = np.array([model for model in all_models if isinstance(model, str)])
+print(f"\nTotal number of models: {len(all_models)}")
+print("All models:")
+print(all_models)
 
 quartiles = divide_into_quartiles(original_leaderboard)
 
@@ -116,8 +107,8 @@ for model in all_models:
 columns = ['Model', '0-25%', '25-50%', '50-75%', '75-100%', 'Reference Model Quartile']
 results_df = pd.DataFrame(results, columns=columns)
 
-print("Quartile-based correlations:")
-print(results_df)
+print("\nQuartile-based correlations:")
+print(results_df.to_string())  
 results_df.to_csv('model_quartile_correlations.csv', index=False)
 
 plt.figure(figsize=(12, len(results_df) * 0.3))
@@ -125,4 +116,9 @@ sns.heatmap(results_df.iloc[:, 1:-1], annot=True, cmap='coolwarm', center=0,
             yticklabels=results_df['Model'], xticklabels=columns[1:-1])
 plt.title("Correlations by Quartile")
 plt.tight_layout()
-plt.show()
+plt.savefig('correlations_heatmap.png', dpi=300, bbox_inches='tight')  # Save the plot
+plt.close()  
+
+print("\nPlot saved as 'correlations_heatmap.png'")
+print("Full results saved as 'model_quartile_correlations.csv'")
+
