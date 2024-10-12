@@ -112,9 +112,9 @@ all_models = [
 ]
 
 tiered_models = [
-    "gpt-4",  # Really good
-    "claude-v1",  # Fairly good
-    "gpt-3.5-turbo",  # Average
+    "gpt4_1106_preview",  # Really good
+    "claude-instant-1.2",  # Fairly good
+    "gpt-3.5-turbo-1106",  # Average
     "vicuna-13b",  # Somewhat bad
     "falcon-7b-instruct"  # Bottom
 ]
@@ -122,24 +122,25 @@ tiered_models = [
 # Test models (you can adjust this list as needed)
 test_models = [
                 'vicuna-13b', 
-                'alpaca-13b', 
+                # 'alpaca-13b', 
                 'wizardlm-13b', 
-                'gpt-3.5-turbo', 
-                'mpt-7b-chat', 
-                'gpt4all-13b-snoozy', 
+                'gpt-3.5-turbo-1106', 
+                # 'mpt-7b-chat', 
+                'gpt4_1106_preview', 
                 'guanaco-33b', 
-                'RWKV-4-Raven-14B', 
-                'koala-13b', 
+                # 'RWKV-4-Raven-14B', 
+                # 'koala-13b', 
                 'vicuna-7b', 
-                'dolly-v2-12b', 
-                'gpt-4', 
-                'oasst-pythia-12b', 
-                'fastchat-t5-3b', 
-                'claude-v1', 
-                'claude-instant-v1', 
-                'llama-13b', 
+                # 'dolly-v2-12b', 
+                "gemma-7b-it",
+                'gpt-4o-2024-05-13', 
+                'oasst-sft-pythia-12b', 
+                # 'fastchat-t5-3b', 
+                'claude', 
+                'claude-instant-1.2', 
+                'llama-2-13b-chat-hf', 
                 'chatglm2-6b', 
-                'palm-2'
+                # 'palm-2'
             ]
 
 def prepare_all_model_outputs(test_models: List[str], questions: List[Dict], output_file: str) -> None:
@@ -243,10 +244,14 @@ def run_evaluation(test_model: str, reference_models: List[str], questions: List
             raise ValueError(f"Unknown eval_type: {eval_type}")
 
         # Print the required information
-        print(f"Question {i+1}: {question['instruction']}")
-        print(f"Reference Model: {reference_model}")
-        print(f"Evaluated Model: {test_model}")
+        print(f"Evaluation Round {i+1}:")
+        print(f"a. Model being evaluated: {test_model}")
+        print(f"b. Reference model: {reference_model}")
+        print(f"c. Type of reference: {eval_type}")
+        print(f"d. Question number: {i+1}")
+        print(f"Question: {question['instruction']}")
         print("---")
+
 
         # Prepare output files for this round
         model_output_file = os.path.join(OUT_PATH, f"{test_model}_output.json")

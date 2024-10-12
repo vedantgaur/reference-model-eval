@@ -85,8 +85,8 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
             original_ranks = original_leaderboard[common_models].rank(ascending=False, method='min')
             model_ranks = model_leaderboard[common_models].rank(ascending=False, method='min')
             
-            tau = get_pearson(original_ranks, model_ranks)
-            results.append(tau)
+            pson = get_pearson(original_ranks, model_ranks)  # Use Pearson correlation
+            results.append(pson)
             model_counts.append(len(common_models))
         else:
             results.append(np.nan)
@@ -98,6 +98,41 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
         results.append('Not in leaderboard')
     
     return results, model_counts
+
+def create_heatmap(df, title, filename, filter_low_counts=False):
+    # Sort the dataframe by percentile in descending order
+    df = df.sort_values('Percentile', ascending=False)
+    
+    plt.figure(figsize=(14, len(df) * 0.4))
+    
+    # Prepare data and annotations
+    data = df.iloc[:, 1:5].values
+    counts = df.iloc[:, -5:-1].values
+    # print(counts)
+    
+    # Create annotations with both correlation and count
+    annotations = []
+    for i in range(data.shape[0]):
+        row_annotations = []
+        for j in range(data.shape[1]):
+            if pd.isna(data[i, j]) or (filter_low_counts and counts[i, j] < 10):
+                row_annotations.append('')
+            else:
+                row_annotations.append(f'{data[i, j]:.2f}\n({counts[i, j]})')
+        annotations.append(row_annotations)
+    
+    # Create mask for cells with count < 10 if filtering
+    mask = counts < 10 if filter_low_counts else np.zeros_like(counts, dtype=bool)
+    
+    # Create heatmap
+    sns.heatmap(data, annot=annotations, fmt='', cmap='coolwarm', center=0, vmin=-1, vmax=1,
+                yticklabels=[f"{row['Model']} ({row['Percentile']:.1f}%)" for _, row in df.iterrows()],
+                xticklabels=['0-25%', '25-50%', '50-75%', '75-100%'], mask=mask)
+    
+    plt.title(title)
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
 
 # Load data
 hf_data = load_dataset("lmsys/lmsys-arena-human-preference-55k")
@@ -128,29 +163,17 @@ results_df = pd.DataFrame(results, columns=columns)
 
 print("\nQuartile-based correlations:")
 print(results_df.to_string())
-results_df.to_csv('results/model_quartile_correlations_pearson.csv', index=False)
+results_df.to_csv('results/pearson/model_quartile_correlations.csv', index=False)
 
 # Calculate percentiles for each model
 percentiles = original_leaderboard.rank(pct=True) * 100
 results_df['Percentile'] = results_df['Model'].map(percentiles)
 
-# Function to create heatmap
-def create_heatmap(df, title, filename):
-    plt.figure(figsize=(14, len(df) * 0.3))
-    sns.heatmap(df.iloc[:, 1:5], annot=True, cmap='coolwarm', center=0,
-                yticklabels=[f"{row['Model']} ({row['Percentile']:.1f}%)" for _, row in df.iterrows()],
-                xticklabels=columns[1:5])
-    plt.title(title)
-    plt.tight_layout()
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
-    plt.close()
+# Create heatmap with all data (no filtering)
+create_heatmap(results_df, "Correlations by Quartile (All Data)", 'results/pearson/correlations_heatmap_all.png', filter_low_counts=False)
 
-# Create heatmap with all data
-create_heatmap(results_df, "Correlations by Quartile (All Data)", 'results/correlations_heatmap_all_pearson.png')
+# Create heatmap with filtered data (showing only cells with >= 10 battles)
+create_heatmap(results_df, "Correlations by Quartile (>= 10 Battles)", 'results/pearson/correlations_heatmap_filtered.png', filter_low_counts=True)
 
-# Create heatmap with filtered data (>= 10 battles)
-filtered_df = results_df[results_df.iloc[:, -4:].min(axis=1) >= 10]
-create_heatmap(filtered_df, "Correlations by Quartile (>= 10 Battles)", 'results/correlations_heatmap_filtered_pearson.png')
-
-print("\nPlots saved as 'correlations_heatmap_all.png' and 'correlations_heatmap_filtered_pearson.png'")
-print("Full results saved as 'model_quartile_correlations_pearson.csv'")
+print("\nPlots saved as 'correlations_heatmap_all.png' and 'correlations_heatmap_filtered.png'")
+print("Full results saved as 'model_quartile_correlations.csv'")
