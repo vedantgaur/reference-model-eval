@@ -54,7 +54,7 @@ all_models = [
     "Starling-LM-7B-alpha-ExPO",
     "Starling-LM-7B-alpha",
     "Starling-LM-7B-beta-ExPO",
-    "Storm-7B-num-beams-10",
+    "Storm-7B-best-of-64",
     "Storm-7B",
     "TempNet-LLaMA2-Chat-13B-v0.1",
     "TempNet-LLaMA2-Chat-70B-v0.1",
@@ -114,7 +114,7 @@ all_models = [
 
 tiered_models = [
     "gpt4_1106_preview",  # Really good
-    "claude-instant-1.2",  # Fairly good
+    "Meta-Llama-3-70B-Instruct",  # Fairly good
     "gpt-3.5-turbo-1106",  # Average
     "vicuna-13b",  # Somewhat bad
     "falcon-7b-instruct"  # Bottom
@@ -167,11 +167,40 @@ def prepare_tiered_reference_outputs(tiered_models: List[str], num_questions: in
     for i in range(len(tiered_models)):
         outputs = []
         for j in range(num_questions):
-            if j < (i + 1) * ROUNDS_PER_TIER:
-                tier_index = j // ROUNDS_PER_TIER
-                model = tiered_models[tier_index]
+            # Determine the model based on the specified conditions
+            if i == 0:  # All gpt4_1106_preview
+                model = "gpt4_1106_preview"
+            elif i == 1:  # First 50 gpt4_1106_preview, rest Meta-Llama-3-70B-Instruct
+                model = "gpt4_1106_preview" if j < 50 else "Meta-Llama-3-70B-Instruct"
+            elif i == 2:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, rest gpt-3.5-turbo-1106
+                if j < 50:
+                    model = "gpt4_1106_preview"
+                elif j < 100:
+                    model = "Meta-Llama-3-70B-Instruct"
+                else:
+                    model = "gpt-3.5-turbo-1106"
+            elif i == 3:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, next 50 gpt-3.5-turbo-1106, rest vicuna-13b
+                if j < 50:
+                    model = "gpt4_1106_preview"
+                elif j < 100:
+                    model = "Meta-Llama-3-70B-Instruct"
+                elif j < 150:
+                    model = "gpt-3.5-turbo-1106"
+                else:
+                    model = "vicuna-13b"
+            elif i == 4:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, next 50 gpt-3.5-turbo-1106, next 50 vicuna-13b, rest falcon-7b-instruct
+                if j < 50:
+                    model = "gpt4_1106_preview"
+                elif j < 100:
+                    model = "Meta-Llama-3-70B-Instruct"
+                elif j < 150:
+                    model = "gpt-3.5-turbo-1106"
+                elif j < 200:
+                    model = "vicuna-13b"
+                else:
+                    model = "falcon-7b-instruct"
             else:
-                model = tiered_models[-1]  # Use the lowest tier model for remaining questions
+                model = tiered_models[-1]  # Fallback to the lowest tier model if needed
             
             model_outputs = load_model_outputs(model)
             if model_outputs and j < len(model_outputs):
