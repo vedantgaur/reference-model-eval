@@ -226,14 +226,16 @@ def run_alpaca_eval(model_outputs: str, reference_outputs: str, output_path: str
         "--annotators_config", "alpaca_eval_gpt4_turbo_fn",
         "--output_path", output_path
     ]
+    logging.info(f"Running alpaca_eval with command: {' '.join(cmd)}")
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        logging.info(f"alpaca_eval completed. Stdout: {result.stdout}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running alpaca_eval: {e}")
         logging.error(f"Stdout: {e.stdout}")
         logging.error(f"Stderr: {e.stderr}")
         raise
-
+    
 def run_alpaca_eval_leaderboard(all_model_outputs, reference_outputs, leaderboard_path, annotators_config):
     cmd = [
         "alpaca_eval", "make_leaderboard",
