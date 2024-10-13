@@ -1,2 +1,0 @@
-,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
-vicuna-13b,50.0,,verified,631,0,0,1,1,50.0,49.059505318574615,0.9404946814253856
