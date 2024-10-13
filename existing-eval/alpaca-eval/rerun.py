@@ -119,7 +119,7 @@ tiered_models = [
     "falcon-7b-instruct"  # Bottom
 ]
 
-# Test models (you can adjust this list as needed)
+# Test models 
 test_models = [
                 'vicuna-13b', 
                 # 'alpaca-13b', 
