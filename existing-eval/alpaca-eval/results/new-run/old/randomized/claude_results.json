@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "test_model": "claude",
+      "win_rate": 0.0
+    }
+  ],
+  "avg_win_rates": {
+    "claude": 0.0
+  }
+}

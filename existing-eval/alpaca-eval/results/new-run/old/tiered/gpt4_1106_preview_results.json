@@ -1,0 +1,36 @@
+{
+  "results": [
+    {
+      "test_model": "gpt4_1106_preview",
+      "tier": 1,
+      "win_rate": 0.0
+    },
+    {
+      "test_model": "gpt4_1106_preview",
+      "tier": 2,
+      "win_rate": 0.0
+    },
+    {
+      "test_model": "gpt4_1106_preview",
+      "tier": 3,
+      "win_rate": 0.0
+    },
+    {
+      "test_model": "gpt4_1106_preview",
+      "tier": 4,
+      "win_rate": 0.0
+    },
+    {
+      "test_model": "gpt4_1106_preview",
+      "tier": 5,
+      "win_rate": 0.0
+    }
+  ],
+  "avg_win_rates": {
+    "tier_1": 0.0,
+    "tier_2": 0.0,
+    "tier_3": 0.0,
+    "tier_4": 0.0,
+    "tier_5": 0.0
+  }
+}

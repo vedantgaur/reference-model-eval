@@ -5,18 +5,19 @@ import subprocess
 import logging
 from typing import List, Dict, Tuple
 from collections import defaultdict
-import datasets
+import pandas as pd
+import numpy as np
+from scipy.optimize import minimize
+import re
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Constants
 NUM_QUESTIONS = 805
-THRESHOLD = 0.20
 RESULTS_PATH = '/Users/vedantgaur/Projects/alpaca_eval/results'
 OUT_PATH = "results/new-run/"
 RANDOMIZED_PATH = os.path.join(OUT_PATH, "randomized")
 TIERED_PATH = os.path.join(OUT_PATH, "tiered")
-ROUNDS_PER_TIER = 50
 
 # Available models
 all_models = [
@@ -112,30 +113,28 @@ all_models = [
     "gpt4_gamed"
 ]
 
-tiered_models = [
-    "gpt4_1106_preview",  # Really good
-    "Meta-Llama-3-70B-Instruct",  # Fairly good
-    "gpt-3.5-turbo-1106",  # Average
-    "vicuna-13b",  # Somewhat bad
-    "falcon-7b-instruct"  # Bottom
-]
-
-# Test models 
+# Test models (subset of all_models, close in performance)
 test_models = [
     'vicuna-13b', 
     'wizardlm-13b', 
-    'gpt-3.5-turbo-1106', 
-    'gpt4_1106_preview', 
     'guanaco-33b', 
     'vicuna-7b', 
-    "gemma-7b-it",
-    'gpt-4o-2024-05-13', 
     'oasst-sft-pythia-12b', 
-    'claude', 
-    'claude-instant-1.2', 
     'llama-2-13b-chat-hf', 
-    'chatglm2-6b', 
+    'chatglm2-6b'
 ]
+
+# Tiered models (subset of all_models, not overlapping with test_models)
+tiered_models = [
+    "gpt-4-0125-preview",
+    "claude-3-opus-20240229",
+    "claude-2.1",
+    "gpt-3.5-turbo-1106",
+    "claude-instant-1.2"
+]
+
+# Remove test_models and tiered_models from all_models for randomized evaluation
+all_models = [model for model in all_models if model not in test_models and model not in tiered_models]
 
 def load_model_outputs(model: str) -> List[Dict]:
     model_output_file = os.path.join(RESULTS_PATH, f"{model}/model_outputs.json")
@@ -164,45 +163,10 @@ def prepare_randomized_reference_outputs(all_models: List[str], num_questions: i
 
 def prepare_tiered_reference_outputs(tiered_models: List[str], num_questions: int, output_dir: str) -> List[str]:
     tier_files = []
-    for i in range(len(tiered_models)):
+    for i, model in enumerate(tiered_models):
         outputs = []
+        model_outputs = load_model_outputs(model)
         for j in range(num_questions):
-            # Determine the model based on the specified conditions
-            if i == 0:  # All gpt4_1106_preview
-                model = "gpt4_1106_preview"
-            elif i == 1:  # First 50 gpt4_1106_preview, rest Meta-Llama-3-70B-Instruct
-                model = "gpt4_1106_preview" if j < 50 else "Meta-Llama-3-70B-Instruct"
-            elif i == 2:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, rest gpt-3.5-turbo-1106
-                if j < 50:
-                    model = "gpt4_1106_preview"
-                elif j < 100:
-                    model = "Meta-Llama-3-70B-Instruct"
-                else:
-                    model = "gpt-3.5-turbo-1106"
-            elif i == 3:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, next 50 gpt-3.5-turbo-1106, rest vicuna-13b
-                if j < 50:
-                    model = "gpt4_1106_preview"
-                elif j < 100:
-                    model = "Meta-Llama-3-70B-Instruct"
-                elif j < 150:
-                    model = "gpt-3.5-turbo-1106"
-                else:
-                    model = "vicuna-13b"
-            elif i == 4:  # First 50 gpt4_1106_preview, next 50 Meta-Llama-3-70B-Instruct, next 50 gpt-3.5-turbo-1106, next 50 vicuna-13b, rest falcon-7b-instruct
-                if j < 50:
-                    model = "gpt4_1106_preview"
-                elif j < 100:
-                    model = "Meta-Llama-3-70B-Instruct"
-                elif j < 150:
-                    model = "gpt-3.5-turbo-1106"
-                elif j < 200:
-                    model = "vicuna-13b"
-                else:
-                    model = "falcon-7b-instruct"
-            else:
-                model = tiered_models[-1]  # Fallback to the lowest tier model if needed
-            
-            model_outputs = load_model_outputs(model)
             if model_outputs and j < len(model_outputs):
                 output = model_outputs[j]
                 output['generator'] = model
@@ -214,11 +178,11 @@ def prepare_tiered_reference_outputs(tiered_models: List[str], num_questions: in
         with open(output_file, 'w') as f:
             json.dump(outputs, f, indent=2)
         tier_files.append(output_file)
-        logging.info(f"Tiered reference outputs for combination {i+1} saved to {output_file}")
+        logging.info(f"Tiered reference outputs for tier {i+1} saved to {output_file}")
     
     return tier_files
 
-def run_alpaca_eval(model_outputs: str, reference_outputs: str, output_path: str) -> None:
+def run_alpaca_eval(model_outputs: str, reference_outputs: str, output_path: str) -> str:
     cmd = [
         "alpaca_eval",
         "--model_outputs", model_outputs,
@@ -230,12 +194,14 @@ def run_alpaca_eval(model_outputs: str, reference_outputs: str, output_path: str
     try:
         result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
         logging.info(f"alpaca_eval completed. Stdout: {result.stdout}")
+        return result.stdout
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running alpaca_eval: {e}")
         logging.error(f"Stdout: {e.stdout}")
         logging.error(f"Stderr: {e.stderr}")
         raise
-    
+
+
 def run_alpaca_eval_leaderboard(all_model_outputs, reference_outputs, leaderboard_path, annotators_config):
     cmd = [
         "alpaca_eval", "make_leaderboard",
@@ -245,16 +211,43 @@ def run_alpaca_eval_leaderboard(all_model_outputs, reference_outputs, leaderboar
         "--annotators_config", annotators_config
     ]
     try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
+        subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
         logging.error(f"Error running alpaca_eval make_leaderboard: {e}")
         logging.error(f"Stdout: {e.stdout}")
         logging.error(f"Stderr: {e.stderr}")
         raise
 
+# def get_win_rate(output_path: str, stdout: str) -> float:
+#     try:
+#         # First, try to read from the leaderboard.json file
+#         leaderboard_file = os.path.join(output_path, 'leaderboard.json')
+#         if os.path.exists(leaderboard_file):
+#             with open(leaderboard_file, 'r') as f:
+#                 leaderboard = json.load(f)
+#             return leaderboard[list(leaderboard.keys())[0]]['win_rate']
+#         else:
+#             # If the file doesn't exist, parse the stdout
+#             logging.warning(f"leaderboard.json not found in {output_path}. Parsing stdout.")
+#             lines = stdout.strip().split('\n')
+#             if len(lines) > 1:
+#                 last_line = lines[-1].split()
+#                 if len(last_line) >= 3:
+#                     return float(last_line[2])  # win_rate is the third column
+#             logging.error(f"Unable to extract win rate from stdout: {stdout}")
+#             return 0.0
+#     except Exception as e:
+#         logging.error(f"Error extracting win rate: {e}")
+#         return 0.0
+
 def get_win_rate(output_path: str) -> float:
+    leaderboard_file = os.path.join(output_path, 'leaderboard.json')
+    if not os.path.exists(leaderboard_file):
+        logging.error(f"Leaderboard file not found: {leaderboard_file}")
+        return 0.0
+    
     try:
-        with open(os.path.join(output_path, 'leaderboard.json'), 'r') as f:
+        with open(leaderboard_file, 'r') as f:
             leaderboard = json.load(f)
         return leaderboard[list(leaderboard.keys())[0]]['win_rate']
     except Exception as e:
@@ -265,41 +258,38 @@ def run_tiered_evaluation(test_model: str, tier_files: List[str]) -> Tuple[List[
     results = []
     win_rates = defaultdict(list)
     model_outputs = load_model_outputs(test_model)
-    model_output_file = os.path.join(TIERED_PATH, f"{test_model}_output.json")
+    model_dir = os.path.join(TIERED_PATH, test_model)
+    os.makedirs(model_dir, exist_ok=True)
+    model_output_file = os.path.join(model_dir, f"{test_model}_output.json")
     with open(model_output_file, 'w') as f:
         json.dump(model_outputs, f, indent=2)
 
-    current_tier = 0
-    total_questions = 0
-    while current_tier < len(tier_files):
-        reference_outputs = tier_files[current_tier]
-        output_path = os.path.join(TIERED_PATH, f"{test_model}_tiered_{current_tier}")
+    for i, reference_outputs in enumerate(tier_files):
+        output_path = os.path.join(model_dir, f"tier_{i+1}")
+        logging.info(f"Output path set to: {output_path}")
         run_alpaca_eval(model_output_file, reference_outputs, output_path)
 
         win_rate = get_win_rate(output_path)
         results.append({
             'test_model': test_model,
-            'tier': current_tier + 1,
+            'tier': i + 1,
             'win_rate': win_rate
         })
-        win_rates[f"tier_{current_tier + 1}"].append(win_rate)
-
-        total_questions += ROUNDS_PER_TIER
-        if win_rate < THRESHOLD and current_tier < len(tier_files) - 1 and total_questions < NUM_QUESTIONS:
-            current_tier += 1
-        else:
-            break
+        win_rates[f"tier_{i + 1}"].append(win_rate)
 
     avg_win_rates = {tier: sum(rates) / len(rates) for tier, rates in win_rates.items()}
     return results, avg_win_rates
 
 def run_randomized_evaluation(test_model: str, reference_outputs: str) -> Tuple[List[Dict], Dict[str, float]]:
     model_outputs = load_model_outputs(test_model)
-    model_output_file = os.path.join(RANDOMIZED_PATH, f"{test_model}_output.json")
+    model_dir = os.path.join(RANDOMIZED_PATH, test_model)
+    os.makedirs(model_dir, exist_ok=True)
+    model_output_file = os.path.join(model_dir, f"{test_model}_output.json")
     with open(model_output_file, 'w') as f:
         json.dump(model_outputs, f, indent=2)
 
-    output_path = os.path.join(RANDOMIZED_PATH, f"{test_model}_randomized")
+    output_path = os.path.join(model_dir, "alpaca_results")
+    logging.info(f"Output path set to: {output_path}")
     run_alpaca_eval(model_output_file, reference_outputs, output_path)
 
     win_rate = get_win_rate(output_path)
@@ -311,15 +301,62 @@ def run_randomized_evaluation(test_model: str, reference_outputs: str) -> Tuple[
     return results, avg_win_rates
 
 def save_results(results: List[Dict], avg_win_rates: Dict[str, float], test_model: str, eval_type: str) -> None:
-    output_dir = os.path.join(OUT_PATH, eval_type)
+    output_dir = os.path.join(OUT_PATH, eval_type, test_model)
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, f"{test_model}_results.json")
+    output_file = os.path.join(output_dir, f"results.json")
     with open(output_file, 'w') as f:
         json.dump({
             'results': results,
             'avg_win_rates': avg_win_rates
         }, f, indent=2)
     logging.info(f"Results saved to {output_file}")
+
+def bradley_terry_model(win_matrix):
+    n = win_matrix.shape[0]
+    
+    def neg_log_likelihood(params):
+        theta = np.exp(params)
+        ll = 0
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    ll += win_matrix[i, j] * np.log(theta[i] / (theta[i] + theta[j]))
+        return -ll
+    
+    def gradient(params):
+        theta = np.exp(params)
+        grad = np.zeros(n)
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    grad[i] += win_matrix[i, j] - (win_matrix[i, j] + win_matrix[j, i]) * theta[i] / (theta[i] + theta[j])
+        return -grad
+    
+    initial_params = np.zeros(n)
+    result = minimize(neg_log_likelihood, initial_params, method='BFGS', jac=gradient)
+    return np.exp(result.x)
+
+def compute_elo_rankings(results: List[Dict]) -> pd.DataFrame:
+    models = list(set(result['test_model'] for result in results))
+    n = len(models)
+    win_matrix = np.zeros((n, n))
+
+    for result in results:
+        i = models.index(result['test_model'])
+        j = models.index(result['reference_model'])
+        win_matrix[i, j] += result['win_rate']
+        win_matrix[j, i] += 1 - result['win_rate']
+
+    strengths = bradley_terry_model(win_matrix)
+    elo_ratings = 400 * np.log10(strengths / np.min(strengths))
+
+    rankings = pd.DataFrame({
+        'Model': models,
+        'Elo Rating': elo_ratings
+    })
+    rankings = rankings.sort_values('Elo Rating', ascending=False).reset_index(drop=True)
+    rankings.index += 1
+    return rankings
 
 def main():
     os.makedirs(RANDOMIZED_PATH, exist_ok=True)
@@ -334,46 +371,29 @@ def main():
     os.makedirs(tiered_output_dir, exist_ok=True)
     tiered_reference_files = prepare_tiered_reference_outputs(tiered_models, NUM_QUESTIONS, tiered_output_dir)
 
-    # Prepare directories for randomized and tiered evaluations
-    os.makedirs(RANDOMIZED_PATH, exist_ok=True)
-    os.makedirs(TIERED_PATH, exist_ok=True)
-
-    # Prepare all_model_outputs for leaderboard creation
-    all_model_outputs = {}
-    for model in test_models:
-        model_outputs = load_model_outputs(model)
-        if model_outputs:
-            all_model_outputs[model] = model_outputs
+    all_results = []
 
     # Run evaluations for each test model
     for test_model in test_models:
         # Run randomized evaluation
         random_results, random_avg_win_rates = run_randomized_evaluation(test_model, randomized_reference_file)
         save_results(random_results, random_avg_win_rates, test_model, "randomized")
+        all_results.extend(random_results)
         
         # Run tiered evaluation
         tiered_results, tiered_avg_win_rates = run_tiered_evaluation(test_model, tiered_reference_files)
         save_results(tiered_results, tiered_avg_win_rates, test_model, "tiered")
+        all_results.extend(tiered_results)
 
-    # Create leaderboards
-    randomized_leaderboard_path = os.path.join(RANDOMIZED_PATH, "leaderboard.json")
-    tiered_leaderboard_path = os.path.join(TIERED_PATH, "leaderboard.json")
+    # Compute Elo rankings
+    elo_rankings = compute_elo_rankings(all_results)
+    
+    # Save Elo rankings
+    elo_rankings_file = os.path.join(OUT_PATH, "elo_rankings.csv")
+    elo_rankings.to_csv(elo_rankings_file, index=False)
+    logging.info(f"Elo rankings saved to {elo_rankings_file}")
 
-    run_alpaca_eval_leaderboard(
-        all_model_outputs=json.dumps(all_model_outputs),
-        reference_outputs=randomized_reference_file,
-        leaderboard_path=randomized_leaderboard_path,
-        annotators_config="alpaca_eval_gpt4_turbo_fn"
-    )
-
-    run_alpaca_eval_leaderboard(
-        all_model_outputs=json.dumps(all_model_outputs),
-        reference_outputs=tiered_reference_files[-1],  # Use the last tier as reference
-        leaderboard_path=tiered_leaderboard_path,
-        annotators_config="alpaca_eval_gpt4_turbo_fn"
-    )
-
-    logging.info("All evaluations and leaderboard creation completed.")
+    logging.info("All evaluations completed.")
 
 if __name__ == "__main__":
     main()

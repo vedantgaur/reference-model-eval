@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "test_model": "gpt4_1106_preview",
+      "win_rate": 0.0
+    }
+  ],
+  "avg_win_rates": {
+    "gpt4_1106_preview": 0.0
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "test_model": "guanaco-33b",
+      "win_rate": 0.0
+    }
+  ],
+  "avg_win_rates": {
+    "guanaco-33b": 0.0
+  }
+}

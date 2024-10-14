@@ -1,0 +1,11 @@
+{
+  "results": [
+    {
+      "test_model": "vicuna-13b",
+      "win_rate": 0.0
+    }
+  ],
+  "avg_win_rates": {
+    "vicuna-13b": 0.0
+  }
+}
