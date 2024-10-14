@@ -1,12 +1,12 @@
 {
   "results": [
     {
-      "test_model": "guanaco-33b",
+      "test_model": "llama-2-13b-chat-hf",
       "reference_model": "randomized",
       "win_rate": 2.59
     }
   ],
   "avg_win_rates": {
-    "guanaco-33b": 2.59
+    "llama-2-13b-chat-hf": 2.59
   }
 }

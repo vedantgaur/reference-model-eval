@@ -1,0 +1,14 @@
+Model,Elo Rating
+wizardlm-13b,inf
+chatglm2-6b,inf
+vicuna-13b,inf
+guanaco-33b,inf
+oasst-sft-pythia-12b,inf
+vicuna-7b,inf
+llama-2-13b-chat-hf,inf
+randomized,
+tier_4,
+tier_3,
+tier_5,
+tier_2,
+tier_1,

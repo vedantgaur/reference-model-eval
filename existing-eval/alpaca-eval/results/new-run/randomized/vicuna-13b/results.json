@@ -2,10 +2,11 @@
   "results": [
     {
       "test_model": "vicuna-13b",
-      "win_rate": 0.0
+      "reference_model": "randomized",
+      "win_rate": 2.59
     }
   ],
   "avg_win_rates": {
-    "vicuna-13b": 0.0
+    "vicuna-13b": 2.59
   }
 }

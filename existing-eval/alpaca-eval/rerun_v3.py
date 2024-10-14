@@ -200,7 +200,7 @@ def run_alpaca_eval(model_outputs: str, reference_outputs: str, output_path: str
         logging.error(f"Stdout: {e.stdout}")
         logging.error(f"Stderr: {e.stderr}")
         raise
-
+    
 
 def run_alpaca_eval_leaderboard(all_model_outputs, reference_outputs, leaderboard_path, annotators_config):
     cmd = [
@@ -218,38 +218,24 @@ def run_alpaca_eval_leaderboard(all_model_outputs, reference_outputs, leaderboar
         logging.error(f"Stderr: {e.stderr}")
         raise
 
-# def get_win_rate(output_path: str, stdout: str) -> float:
-#     try:
-#         # First, try to read from the leaderboard.json file
-#         leaderboard_file = os.path.join(output_path, 'leaderboard.json')
-#         if os.path.exists(leaderboard_file):
-#             with open(leaderboard_file, 'r') as f:
-#                 leaderboard = json.load(f)
-#             return leaderboard[list(leaderboard.keys())[0]]['win_rate']
-#         else:
-#             # If the file doesn't exist, parse the stdout
-#             logging.warning(f"leaderboard.json not found in {output_path}. Parsing stdout.")
-#             lines = stdout.strip().split('\n')
-#             if len(lines) > 1:
-#                 last_line = lines[-1].split()
-#                 if len(last_line) >= 3:
-#                     return float(last_line[2])  # win_rate is the third column
-#             logging.error(f"Unable to extract win rate from stdout: {stdout}")
-#             return 0.0
-#     except Exception as e:
-#         logging.error(f"Error extracting win rate: {e}")
-#         return 0.0
-
-def get_win_rate(output_path: str) -> float:
-    leaderboard_file = os.path.join(output_path, 'leaderboard.json')
-    if not os.path.exists(leaderboard_file):
-        logging.error(f"Leaderboard file not found: {leaderboard_file}")
-        return 0.0
-    
+def get_win_rate(output_path: str, stdout: str) -> float:
     try:
-        with open(leaderboard_file, 'r') as f:
-            leaderboard = json.load(f)
-        return leaderboard[list(leaderboard.keys())[0]]['win_rate']
+        # First, try to read from the leaderboard.json file
+        leaderboard_file = os.path.join(output_path, 'leaderboard.json')
+        if os.path.exists(leaderboard_file):
+            with open(leaderboard_file, 'r') as f:
+                leaderboard = json.load(f)
+            return leaderboard[list(leaderboard.keys())[0]]['win_rate']
+        else:
+            # If the file doesn't exist, parse the stdout
+            logging.warning(f"leaderboard.json not found in {output_path}. Parsing stdout.")
+            lines = stdout.strip().split('\n')
+            if len(lines) > 1:
+                last_line = lines[-1].split()
+                if len(last_line) >= 3:
+                    return float(last_line[2])  # win_rate is the third column
+            logging.error(f"Unable to extract win rate from stdout: {stdout}")
+            return 0.0
     except Exception as e:
         logging.error(f"Error extracting win rate: {e}")
         return 0.0
@@ -266,12 +252,13 @@ def run_tiered_evaluation(test_model: str, tier_files: List[str]) -> Tuple[List[
 
     for i, reference_outputs in enumerate(tier_files):
         output_path = os.path.join(model_dir, f"tier_{i+1}")
-        logging.info(f"Output path set to: {output_path}")
-        run_alpaca_eval(model_output_file, reference_outputs, output_path)
+        os.makedirs(output_path, exist_ok=True)
+        stdout = run_alpaca_eval(model_output_file, reference_outputs, output_path)
 
-        win_rate = get_win_rate(output_path)
+        win_rate = get_win_rate(output_path, stdout)
         results.append({
             'test_model': test_model,
+            'reference_model': f'tier_{i + 1}',  # Add this line
             'tier': i + 1,
             'win_rate': win_rate
         })
@@ -289,12 +276,13 @@ def run_randomized_evaluation(test_model: str, reference_outputs: str) -> Tuple[
         json.dump(model_outputs, f, indent=2)
 
     output_path = os.path.join(model_dir, "alpaca_results")
-    logging.info(f"Output path set to: {output_path}")
-    run_alpaca_eval(model_output_file, reference_outputs, output_path)
+    os.makedirs(output_path, exist_ok=True)
+    stdout = run_alpaca_eval(model_output_file, reference_outputs, output_path)
 
-    win_rate = get_win_rate(output_path)
+    win_rate = get_win_rate(output_path, stdout)
     results = [{
         'test_model': test_model,
+        'reference_model': 'randomized',  # Add this line
         'win_rate': win_rate
     }]
     avg_win_rates = {test_model: win_rate}
@@ -338,14 +326,17 @@ def bradley_terry_model(win_matrix):
 
 def compute_elo_rankings(results: List[Dict]) -> pd.DataFrame:
     models = list(set(result['test_model'] for result in results))
+    models += list(set(result.get('reference_model') for result in results if 'reference_model' in result))
+    models = list(set(models)) 
     n = len(models)
     win_matrix = np.zeros((n, n))
 
     for result in results:
         i = models.index(result['test_model'])
-        j = models.index(result['reference_model'])
-        win_matrix[i, j] += result['win_rate']
-        win_matrix[j, i] += 1 - result['win_rate']
+        if 'reference_model' in result:
+            j = models.index(result['reference_model'])
+            win_matrix[i, j] += result['win_rate']
+            win_matrix[j, i] += 1 - result['win_rate']
 
     strengths = bradley_terry_model(win_matrix)
     elo_ratings = 400 * np.log10(strengths / np.min(strengths))
