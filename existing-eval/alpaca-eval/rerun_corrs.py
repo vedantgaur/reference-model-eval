@@ -2,7 +2,7 @@ import os
 import json
 import numpy as np
 from scipy.optimize import minimize
-from scipy.stats import pearsonr, kendalltau
+from scipy.stats import pearsonr, kendalltau, spearmanr
 from typing import List, Dict, Tuple
 
 # Constants
@@ -142,10 +142,11 @@ def process_tiered_results(model: str, threshold: float) -> Tuple[int, float]:
     
     return tiered_ranking(all_results, threshold=threshold)
 
-def correlation_with_arena(our_rankings: List[float], arena_rankings: List[float]) -> Tuple[float, float, float, float]:
+def correlation_with_arena(our_rankings: List[float], arena_rankings: List[float]) -> Tuple[float, float, float, float, float, float]:
     pearson_corr, pearson_p = pearsonr(our_rankings, arena_rankings)
     kendall_corr, kendall_p = kendalltau(our_rankings, arena_rankings)
-    return pearson_corr, pearson_p, kendall_corr, kendall_p
+    spearman_corr, spearman_p = spearmanr(our_rankings, arena_rankings)
+    return pearson_corr, pearson_p, kendall_corr, kendall_p, spearman_corr, spearman_p
 
 def main():
     # Process randomized rankings
@@ -190,11 +191,11 @@ def main():
         
         print(f"\nCorrelation with ChatBot Arena (Threshold: {threshold}):")
         
-        randomized_pearson, randomized_pearson_p, randomized_kendall, randomized_kendall_p = correlation_with_arena(randomized_bt_scores, arena_rankings)
-        print(f"Randomized (Bradley-Terry): Pearson = {randomized_pearson:.4f} (p={randomized_pearson_p:.4f}), Kendall Tau = {randomized_kendall:.4f} (p={randomized_kendall_p:.4f})")
+        randomized_pearson, randomized_pearson_p, randomized_kendall, randomized_kendall_p, randomized_spearman, randomized_spearman_p = correlation_with_arena(randomized_bt_scores, arena_rankings)
+        print(f"Randomized (Bradley-Terry): Pearson = {randomized_pearson:.4f} (p={randomized_pearson_p:.4f}), Kendall Tau = {randomized_kendall:.4f} (p={randomized_kendall_p:.4f}), Spearman = {randomized_spearman:.4f} (p={randomized_spearman_p:.4f})")
         
-        tiered_pearson, tiered_pearson_p, tiered_kendall, tiered_kendall_p = correlation_with_arena(tiered_bt_scores, arena_rankings)
-        print(f"Tiered (Bradley-Terry): Pearson = {tiered_pearson:.4f} (p={tiered_pearson_p:.4f}), Kendall Tau = {tiered_kendall:.4f} (p={tiered_kendall_p:.4f})")
+        tiered_pearson, tiered_pearson_p, tiered_kendall, tiered_kendall_p, tiered_spearman, tiered_spearman_p = correlation_with_arena(tiered_bt_scores, arena_rankings)
+        print(f"Tiered (Bradley-Terry): Pearson = {tiered_pearson:.4f} (p={tiered_pearson_p:.4f}), Kendall Tau = {tiered_kendall:.4f} (p={tiered_kendall_p:.4f}), Spearman = {tiered_spearman:.4f} (p={tiered_spearman_p:.4f})")
 
 if __name__ == "__main__":
     main()
