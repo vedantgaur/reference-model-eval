@@ -1,7 +1,37 @@
 import numpy as np
+import pandas as pd
+import os
 from scipy.stats import pearsonr, spearmanr
 
-# Model scores
+# Function to extract win rates from leaderboard.csv
+def extract_win_rates(model_name, tier):
+    file_path = f'results/new-run/tiered/{model_name}/tier_{tier}/alpaca_eval_gpt4_turbo_fn/leaderboard.csv'
+    # print(os.path.abspath(file_path))
+    df = pd.read_csv(file_path)
+
+    # Extract the regular win rate
+    regular_win_rate = df['win_rate'].values[0]
+    
+    # Extract the length-controlled win rate
+    length_controlled_win_rate = df['length_controlled_winrate'].values[0]
+    
+    return regular_win_rate, length_controlled_win_rate
+
+# List of models to evaluate
+models = [
+    'llama-2-13b-chat-hf',
+    'zephyr-7b-beta',
+    'qwen1.5-7b-chat',
+    'guanaco-33b',
+    'vicuna-13b',
+    'zephyr-7b-alpha',
+    'qwen-14b-chat',
+    'mistral-7b-instruct-v0.3',
+    'vicuna-7b',
+    'chatglm2-6b'
+]
+
+# Initialize dictionaries for scores
 test_models_arena = {
     'llama-2-13b-chat-hf': 1063,
     'zephyr-7b-beta': 1054,
@@ -14,64 +44,43 @@ test_models_arena = {
     'vicuna-7b': 1005,
     'chatglm2-6b': 924
 }
+test_models_alpaca = {}
+length_controlled_scores = {}
 
-# Update the test_models_alpaca with new win rates
-test_models_alpaca = {
-    'chatglm2-6b': 2.0,  # Non-length controlled
-    'guanaco-33b': 7.5,  # Non-length controlled
-    'llama-2-13b-chat-hf': 8.5,  # Non-length controlled
-    'mistral-7b-instruct-v0.3': 22.25,  # Non-length controlled
-    'qwen-14b-chat': 5.75,  # Non-length controlled
-    'qwen1.5-7b-chat': 19.25,  # Non-length controlled
-    'vicuna-7b': 1.5,  # Non-length controlled
-    'vicuna-13b': 4.75,  # Non-length controlled
-    'zephyr-7b-alpha': 11.0,  # Non-length controlled
-    'zephyr-7b-beta': 14.0  # Non-length controlled
-}
+for i in range(4, 5):
+# Extract scores for each model
+    for model in models:
+        # print(model)
+        # {{ edit_1 }} Replace placeholder with actual arena scores
+        arena_score = test_models_arena[model]  # Use actual arena scores
+        non_length_controlled, length_controlled = extract_win_rates(model, i)
+        # print(non_length_controlled, length_controlled)
+        
+        test_models_arena[model] = arena_score
+        test_models_alpaca[model] = non_length_controlled
+        length_controlled_scores[model] = length_controlled
 
-# New length controlled scores
-length_controlled_scores = {
-    'chatglm2-6b': 5.6374361669805815,
-    'guanaco-33b': 10.14761803014255,
-    'llama-2-13b-chat-hf': 9.736368412724719,
-    'mistral-7b-instruct-v0.3': 32.78508622486959,
-    'qwen-14b-chat': 10.692519833473895,
-    'qwen1.5-7b-chat': 20.2390205736907,
-    'vicuna-7b': 3.4157234491065025,
-    'vicuna-13b': 10.360113065879933,
-    'zephyr-7b-alpha': 20.180754426245095,
-    'zephyr-7b-beta': 20.007725341006807
-}
 
-# Ensure the order of models is the same for both datasets
-models = list(test_models_arena.keys())
-arena_scores = [test_models_arena[model] for model in models]
-alpaca_scores = [test_models_alpaca[model] for model in models]
-length_controlled_alpaca_scores = [length_controlled_scores[model] for model in models]
 
-# Calculate Pearson correlation for non-length controlled
-pearson_corr, pearson_p = pearsonr(arena_scores, alpaca_scores)
+    # Calculate Pearson and Spearman correlations
+    pearson_corr, pearson_p = pearsonr(list(test_models_arena.values()), list(test_models_alpaca.values()))
+    spearman_corr, spearman_p = spearmanr(list(test_models_arena.values()), list(test_models_alpaca.values()))
+    length_controlled_pearson_corr, length_controlled_pearson_p = pearsonr(list(test_models_arena.values()), list(length_controlled_scores.values()))
+    length_controlled_spearman_corr, length_controlled_spearman_p = spearmanr(list(test_models_arena.values()), list(length_controlled_scores.values()))
 
-# Calculate Spearman correlation for non-length controlled
-spearman_corr, spearman_p = spearmanr(arena_scores, alpaca_scores)
+    print(f"TIER {i}")
+    # Print results
+    print("Correlation between ChatBot Arena and Alpaca scores (non-length controlled):")
+    print(f"Pearson correlation: {pearson_corr:.4f} (p-value: {pearson_p:.4f})")
+    print(f"Spearman correlation: {spearman_corr:.4f} (p-value: {spearman_p:.4f})")
 
-# Calculate Pearson correlation for length controlled
-length_controlled_pearson_corr, length_controlled_pearson_p = pearsonr(arena_scores, length_controlled_alpaca_scores)
-
-# Calculate Spearman correlation for length controlled
-length_controlled_spearman_corr, length_controlled_spearman_p = spearmanr(arena_scores, length_controlled_alpaca_scores)
-
-print("Correlation between ChatBot Arena and Alpaca scores (non-length controlled):")
-print(f"Pearson correlation: {pearson_corr:.4f} (p-value: {pearson_p:.4f})")
-print(f"Spearman correlation: {spearman_corr:.4f} (p-value: {spearman_p:.4f})")
-
-print("\nCorrelation between ChatBot Arena and Alpaca scores (length controlled):")
-print(f"Pearson correlation: {length_controlled_pearson_corr:.4f} (p-value: {length_controlled_pearson_p:.4f})")
-print(f"Spearman correlation: {length_controlled_spearman_corr:.4f} (p-value: {length_controlled_spearman_p:.4f})")
-
-# Print the data for verification
-print("\nModel Scores:")
-print("Model                    Arena   Alpaca (Non-length controlled)   Alpaca (Length controlled)")
-print("---------------------------------------------------------------------------------------------")
-for model in models:
-    print(f"{model:<22} {test_models_arena[model]:<7} {test_models_alpaca[model]:<7} {length_controlled_scores[model]:<7}")
+    print("\nCorrelation between ChatBot Arena and Alpaca scores (length controlled):")
+    print(f"Pearson correlation: {length_controlled_pearson_corr:.4f} (p-value: {length_controlled_pearson_p:.4f})")
+    print(f"Spearman correlation: {length_controlled_spearman_corr:.4f} (p-value: {length_controlled_spearman_p:.4f})")
+    print("===============")
+    # # Print the data for verification
+    # print("\nModel Scores:")
+    # print("Model                    Arena   Alpaca (Non-length controlled)   Alpaca (Length controlled)")
+    # print("---------------------------------------------------------------------------------------------")
+    # for model in models:
+    #     print(f"{model:<22} {test_models_arena[model]:<7} {test_models_alpaca[model]:<7} {length_controlled_scores[model]:<7}")
