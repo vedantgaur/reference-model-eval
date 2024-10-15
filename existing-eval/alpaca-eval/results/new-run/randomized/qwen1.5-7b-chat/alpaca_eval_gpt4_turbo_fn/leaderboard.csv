@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+Qwen1.5-7B-Chat,45.25,3.4473334680881984,community,1803,86,105,9,200,45.25,38.93912147440773,0.819867281174937

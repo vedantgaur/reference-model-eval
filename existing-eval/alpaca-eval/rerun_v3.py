@@ -118,7 +118,7 @@ test_models = [
     'vicuna-13b', 
     'wizardlm-13b', 
     'guanaco-33b', 
-    'vicuna-7b', 
+    # 'vicuna-7b', 
     'oasst-sft-pythia-12b', 
     'llama-2-13b-chat-hf', 
     'chatglm2-6b'
@@ -368,6 +368,8 @@ def main():
     for test_model in test_models:
         # Run randomized evaluation
         random_results, random_avg_win_rates = run_randomized_evaluation(test_model, randomized_reference_file)
+        logging.info(f"Randomized evaluation results for {test_model}: {random_results}")
+        logging.info(f"Average win rate for {test_model} in randomized evaluation: {random_avg_win_rates}")
         save_results(random_results, random_avg_win_rates, test_model, "randomized")
         all_results.extend(random_results)
         

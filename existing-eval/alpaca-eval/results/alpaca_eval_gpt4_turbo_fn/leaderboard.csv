@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+vicuna-13b,6.218905472636816,0.8476741723725062,community,1037,49,753,2,804,6.218905472636816,9.385366919011616,0.2919640369019385
