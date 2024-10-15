@@ -128,7 +128,7 @@ if __name__=='__main__':
 
 
     min_periods = n_min_models -1
-    filename="~/projects/llm-eval/existing-eval/new_new_benchmarks.csv"
+    filename="~/projects/llm-eval/existing-eval/new_benchmarks.csv"
     df = pd.read_csv(filename, index_col=0)
     df.columns = [c.split("\n")[0] for c in df.columns]
 
@@ -148,3 +148,9 @@ if __name__=='__main__':
         mat_sys = pd.concat([mat_sys, mat_sys_custom], axis=1, join='inner')
     
     print(mat_sys)
+
+    # pd.set_option('display.max_rows', None)  # Show all rows
+    # pd.set_option('display.max_columns', None)  # Show all columns
+    # pd.set_option('display.width', None)  # Disable line wrapping
+    # pd.set_option('display.max_colwidth', None)  # Show full column width
+    # print(mat_sys)  # Print the entire final matrix
