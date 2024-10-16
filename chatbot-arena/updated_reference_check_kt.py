@@ -65,6 +65,7 @@ def get_kendall(x, y):
     return tau
 
 def calculate_quartile_correlations(model, original_leaderboard, model_leaderboard, quartiles):
+    print(model_leaderboard)
     results = []
     model_counts = []
     for quartile in ['0-25%', '25-50%', '50-75%', '75-100%']:
@@ -74,7 +75,8 @@ def calculate_quartile_correlations(model, original_leaderboard, model_leaderboa
         if len(common_models) > 1:
             original_ranks = original_leaderboard[common_models].rank(ascending=False, method='min')
             model_ranks = model_leaderboard[common_models].rank(ascending=False, method='min')
-            
+            # print(original_ranks, model_ranks)
+
             tau = get_kendall(original_ranks, model_ranks)
             results.append(tau)
             model_counts.append(len(common_models))

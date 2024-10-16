@@ -133,14 +133,14 @@ def tiered_ranking(model_results: List[int], tiers: int = 4, threshold: float = 
     final_win_rate = total_wins / total_comparisons if total_comparisons > 0 else 0
     return current_tier, final_win_rate
 
-def process_tiered_results(model: str, threshold: float) -> Tuple[int, float]:
+def process_tiered_results(model: str, threshold: float, chunk_size: int = 50) -> Tuple[int, float]:
     all_results = []
     for tier in range(1, 5):
         annotations = load_annotations(model, "tiered", tier)
         results = [1 if a['preference'] == 2.0 else 0 for a in annotations]
         all_results.extend(results)
     
-    return tiered_ranking(all_results, threshold=threshold)
+    return tiered_ranking(all_results, threshold=threshold, chunk_size=50)
 
 def correlation_with_arena(our_rankings: List[float], arena_rankings: List[float]) -> Tuple[float, float, float, float, float, float]:
     pearson_corr, pearson_p = pearsonr(our_rankings, arena_rankings)
@@ -166,13 +166,14 @@ def main():
             print(f"{model}: {score:.4f}")
 
     # Process tiered rankings for multiple thresholds
-    thresholds = [0.1, 0.15, 0.2, 0.25, 0.3]
-    for threshold in thresholds:
-        print(f"\nTiered Rankings (Threshold: {threshold}):")
+    chunk_sizes = [25, 50, 75, 100, 125]
+    threshold = 0.2
+    for chunk_size in chunk_sizes:
+        print(f"\nTiered Rankings (Chunk Size: {chunk_size}):")
         tiered_annotations = []
         tiered_results = []
         for model in test_models:
-            tier, win_rate = process_tiered_results(model, threshold)
+            tier, win_rate = process_tiered_results(model, threshold, chunk_size)
             tiered_results.append((model, tier, win_rate))
             for t in range(1, tier + 1):
                 tiered_annotations.extend(load_annotations(model, "tiered", t))
@@ -189,7 +190,7 @@ def main():
         randomized_bt_scores = [score for model, score in randomized_rankings if model in test_models]
         tiered_bt_scores = [score for model, score in tiered_bt_rankings if model in test_models]
         
-        print(f"\nCorrelation with ChatBot Arena (Threshold: {threshold}):")
+        print(f"\nCorrelation with ChatBot Arena (Chunk: {chunk_size} // Threshold: {threshold}):")
         
         randomized_pearson, randomized_pearson_p, randomized_kendall, randomized_kendall_p, randomized_spearman, randomized_spearman_p = correlation_with_arena(randomized_bt_scores, arena_rankings)
         print(f"Randomized (Bradley-Terry): Pearson = {randomized_pearson:.4f} (p={randomized_pearson_p:.4f}), Kendall Tau = {randomized_kendall:.4f} (p={randomized_kendall_p:.4f}), Spearman = {randomized_spearman:.4f} (p={randomized_spearman_p:.4f})")
