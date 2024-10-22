@@ -19,35 +19,35 @@ def extract_win_rates(model_name, tier):
 
 # List of models to evaluate
 models = [
-    'llama-2-13b-chat-hf',
     'zephyr-7b-beta',
     'qwen1.5-7b-chat',
-    'guanaco-33b',
-    'vicuna-13b',
-    'zephyr-7b-alpha',
     'qwen-14b-chat',
     'mistral-7b-instruct-v0.3',
+    'zephyr-7b-alpha',
+    'guanaco-33b',
+    'llama-2-13b-chat-hf',
+    'vicuna-13b',
     'vicuna-7b',
     'chatglm2-6b'
 ]
 
 # Initialize dictionaries for scores
 test_models_arena = {
-    'llama-2-13b-chat-hf': 1063,
     'zephyr-7b-beta': 1054,
     'qwen1.5-7b-chat': 1070,
-    'guanaco-33b': 1033,
-    'vicuna-13b': 1042,
-    'zephyr-7b-alpha': 1041,
     'qwen-14b-chat': 1035,
     'mistral-7b-instruct-v0.3': 1072,
+    'zephyr-7b-alpha': 1041,
+    'guanaco-33b': 1033,
+    'llama-2-13b-chat-hf': 1063,
+    'vicuna-13b': 1042,
     'vicuna-7b': 1005,
     'chatglm2-6b': 924
 }
 test_models_alpaca = {}
 length_controlled_scores = {}
 
-for i in range(4, 5):
+for i in range(1, 5):  # Evaluate all tiers from 1 to 4
 # Extract scores for each model
     for model in models:
         # print(model)
@@ -60,8 +60,6 @@ for i in range(4, 5):
         test_models_alpaca[model] = non_length_controlled
         length_controlled_scores[model] = length_controlled
 
-
-
     # Calculate Pearson and Spearman correlations
     pearson_corr, pearson_p = pearsonr(list(test_models_arena.values()), list(test_models_alpaca.values()))
     spearman_corr, spearman_p = spearmanr(list(test_models_arena.values()), list(test_models_alpaca.values()))
@@ -73,10 +71,16 @@ for i in range(4, 5):
     print("Correlation between ChatBot Arena and Alpaca scores (non-length controlled):")
     print(f"Pearson correlation: {pearson_corr:.4f} (p-value: {pearson_p:.4f})")
     print(f"Spearman correlation: {spearman_corr:.4f} (p-value: {spearman_p:.4f})")
+    print("Win Rates:")
+    for model in models:
+        print(f"{model}: {test_models_alpaca[model]:.4f}")
 
     print("\nCorrelation between ChatBot Arena and Alpaca scores (length controlled):")
     print(f"Pearson correlation: {length_controlled_pearson_corr:.4f} (p-value: {length_controlled_pearson_p:.4f})")
     print(f"Spearman correlation: {length_controlled_spearman_corr:.4f} (p-value: {length_controlled_spearman_p:.4f})")
+    print("Win Rates:")
+    for model in models:
+        print(f"{model}: {length_controlled_scores[model]:.4f}")
     print("===============")
     # # Print the data for verification
     # print("\nModel Scores:")

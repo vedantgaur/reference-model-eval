@@ -111,8 +111,10 @@ def custom_corr(df, n_min_models=25, apply_dd=False, apply_dd_val=0.5):
     filtered_cols = []
     for c in columns:
         temp_df = df[['Arena Elo', c]].dropna()
-        if len(temp_df) >= n_min_models -1:
+        if len(temp_df) >= n_min_models - 1:
             filtered_cols.append(c)
+        else:
+            print(f"Column {c} excluded: {len(temp_df)} non-null pairs")
     
     mat = pd.DataFrame(np.zeros(len(filtered_cols)), index=filtered_cols, columns=[apply_dd_val])
     for c in filtered_cols:
@@ -124,12 +126,13 @@ def custom_corr(df, n_min_models=25, apply_dd=False, apply_dd_val=0.5):
 
 if __name__=='__main__':
     is_drop_alpaca = True
-    n_min_models = 25
+    n_min_models = 15
 
 
     min_periods = n_min_models -1
-    filename="~/projects/llm-eval/existing-eval/new_benchmarks.csv"
+    filename="new_benchmarks.csv"
     df = pd.read_csv(filename, index_col=0)
+    print(df.columns)
     df.columns = [c.split("\n")[0] for c in df.columns]
 
     df = df.iloc[:, [i for i in range(df.columns.size) if i != 1]]
@@ -137,6 +140,11 @@ if __name__=='__main__':
 
     """if is_drop_alpaca:
         df = df.drop(columns=["AlpacaEval 2.0", "AlpacaEval 1.0"])"""
+    
+    for col in df.columns:
+        if col != 'Arena Elo':
+            print(f"{col}: {df[['Arena Elo', col]].dropna().shape[0]} non-null pairs")
+
     
     df_corr = df.corr(method="kendall", min_periods=min_periods).dropna(how="all", axis=0).dropna(how="all", axis=1)['Arena Elo']
     #print(df_corr)
