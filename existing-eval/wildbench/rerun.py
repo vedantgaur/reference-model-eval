@@ -11,6 +11,24 @@ from tqdm import tqdm
 from openai import AzureOpenAI
 from dotenv import load_dotenv
 
+test_models = [
+    'SELM-Zephyr-7B-iter-3',
+    'Qwen1.5-7B-Chat@together',
+    'Yi-1.5-34B-Chat',
+    'Mistral-7B-Instruct-v0.2',
+    'Llama-2-7b-chat-hf',
+    'Yi-1.5-9B-Chat',
+    'Yi-1.5-6B-Chat',
+    'glm-4-9b-chat'
+]
+
+tiered_models = [
+    "gpt-4-turbo-2024-04-09",
+    "mistral-large-2402",
+    "Llama-3-Instruct-8B-SimPO",
+    "neo_7b_instruct_v0.1-ExPO"
+]
+
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
@@ -31,9 +49,9 @@ if not openai_api_key:
     raise ValueError("OpenAI API key not found in environment variables.")
 
 # Constants
-MAX_RETRIES = 3
+MAX_RETRIES = 20
 RETRY_DELAY = 1.0
-CALLS_PER_MINUTE = 50  # Adjust based on your rate limits
+CALLS_PER_MINUTE = 50 
 MAX_WORKERS = 5
 
 @dataclass
@@ -72,22 +90,58 @@ class ProgressTracker:
 
 def load_prompt_template(file_path: str) -> str:
     """Load the evaluation prompt template from a file."""
-    with open(file_path, 'r') as f:
-        return f.read()
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            template = f.read()
+            logging.debug(f"Loaded template length: {len(template)}")
+            return template
+    except Exception as e:
+        logging.error(f"Error loading prompt template: {str(e)}", exc_info=True)
+        raise
 
 def load_json_file(file_path: str) -> List[Dict]:
     """Load a JSON file containing model outputs."""
     with open(file_path, 'r') as f:
         return json.load(f)
 
-def format_conversation_history(history: List[Dict]) -> str:
+# def format_conversation_history(history: List[Dict]) -> str:
+#     """Format conversation history into a string."""
+#     formatted_history = []
+    
+#     # Add debug logging
+#     logging.debug(f"Raw history data: {history}")
+    
+#     # Handle different possible history formats
+#     for turn in history:
+#         try:
+#             if isinstance(turn, dict):
+#                 # Handle dictionary format
+#                 if 'user' in turn:
+#                     formatted_history.append(f"User: {turn['user']}")
+#                 if 'assistant' in turn:
+#                     formatted_history.append(f"Assistant: {turn['assistant']}")
+#             elif isinstance(turn, str):
+#                 # Handle string format
+#                 formatted_history.append(turn)
+#             else:
+#                 logging.warning(f"Unexpected turn format: {type(turn)}")
+#                 formatted_history.append(str(turn))
+                
+#         except Exception as e:
+#             logging.error(f"Error formatting turn {turn}: {str(e)}")
+#             continue
+    
+#     formatted_result = "\n".join(formatted_history) if formatted_history else ""
+#     logging.debug(f"Formatted history: {formatted_result}")
+#     return formatted_result
+
+def format_conversation_history(history: List[str]) -> str:
     """Format conversation history into a string."""
-    formatted_history = []
-    for turn in history:
-        formatted_history.append(f"User: {turn['user']}")
-        if 'assistant' in turn:
-            formatted_history.append(f"Assistant: {turn['assistant']}")
-    return "\n".join(formatted_history)
+    if not history:
+        return ""
+        
+    # If history is a list of strings, just join them
+    return "\n".join(history) if isinstance(history[0], str) else ""
 
 def create_evaluation_prompt(
     prompt_template: str,
@@ -97,12 +151,53 @@ def create_evaluation_prompt(
     """Create the full evaluation prompt by filling in the template."""
     formatted_history = format_conversation_history(task.history)
     
-    return prompt_template.format(
-        history=formatted_history,
-        user_query=task.query,
-        candidate_A=task.response_a,
-        candidate_B=task.response_b,
-        checklist=checklist
+    # Convert response_a and response_b to strings if they're lists
+    response_a = "\n".join(task.response_a) if isinstance(task.response_a, list) else str(task.response_a)
+    response_b = "\n".join(task.response_b) if isinstance(task.response_b, list) else str(task.response_b)
+    
+    # Replace template variables with actual content
+    prompt = prompt_template.replace("{$history}", formatted_history)
+    prompt = prompt.replace("{$user_query}", str(task.query))
+    prompt = prompt.replace("{$candidate_A}", response_a)
+    prompt = prompt.replace("{$candidate_B}", response_b)
+    prompt = prompt.replace("{$checklist}", checklist)
+    
+    # Debug logging
+    logging.debug(f"Formatted history: {formatted_history}")
+    logging.debug(f"Response A type: {type(response_a)}")
+    logging.debug(f"Response B type: {type(response_b)}")
+    
+    return prompt
+
+def create_evaluation_task(
+    test_item: Dict,
+    ref_item: Dict,
+    evaluation_type: str,
+    tier: Optional[int] = None
+) -> EvaluationTask:
+    """Create a single evaluation task with debug logging."""
+    logging.debug(f"Creating task from test item: {test_item}")
+    logging.debug(f"Reference item: {ref_item}")
+    
+    # Get chat history - handle both list and string formats
+    chat_history = test_item.get('chat_history', [])
+    if isinstance(chat_history, str):
+        chat_history = [chat_history]
+    
+    # Get model outputs - handle both list and string formats
+    test_output = test_item.get('output', '')
+    ref_output = ref_item.get('output', '')
+    
+    return EvaluationTask(
+        session_id=test_item.get('session_id', ''),
+        test_model=test_item.get('generator', ''),
+        reference_model=ref_item.get('generator', ''),
+        history=chat_history,
+        query=test_item.get('model_input', ''),
+        response_a=test_output,
+        response_b=ref_output,
+        evaluation_type=evaluation_type,
+        tier=tier
     )
 
 @sleep_and_retry
@@ -143,7 +238,7 @@ def process_single_evaluation(
     task: EvaluationTask,
     progress_tracker: ProgressTracker
 ) -> Optional[Dict]:
-    """Process a single evaluation task."""
+    """Process a single evaluation task with improved error handling."""
     task_id = f"{task.evaluation_type}_{task.session_id}_{task.test_model}_{task.reference_model}"
     
     if progress_tracker.is_completed(task_id):
@@ -151,8 +246,17 @@ def process_single_evaluation(
         return None
     
     try:
+        logging.info(f"Processing task: {task_id}")
+        logging.debug(f"Task details: {vars(task)}")
+        
+        # Create prompt and ensure all components are strings
         prompt = create_evaluation_prompt(prompt_template, task)
+        
+        if not isinstance(prompt, str):
+            raise ValueError(f"Generated prompt is not a string: {type(prompt)}")
+            
         evaluation = call_azure_openai(client, prompt)
+        logging.info(f"Received evaluation for task: {task_id}")
         
         result = {
             'session_id': task.session_id,
@@ -167,8 +271,35 @@ def process_single_evaluation(
         return result
         
     except Exception as e:
-        logging.error(f"Error processing task {task_id}: {str(e)}")
+        logging.error(f"Error processing task {task_id}: {str(e)}", exc_info=True)
         return None
+    
+def create_evaluation_task(
+    test_item: Dict,
+    ref_item: Dict,
+    evaluation_type: str,
+    tier: Optional[int] = None
+) -> EvaluationTask:
+    """Create a single evaluation task with debug logging."""
+    logging.debug(f"Creating task from test item: {test_item}")
+    logging.debug(f"Reference item: {ref_item}")
+    
+    # Ensure chat_history is properly formatted
+    chat_history = test_item.get('chat_history', [])
+    if isinstance(chat_history, str):
+        chat_history = [{'user': chat_history}]
+    
+    return EvaluationTask(
+        session_id=test_item.get('session_id', ''),
+        test_model=test_item.get('generator', ''),
+        reference_model=ref_item.get('generator', ''),
+        history=chat_history,
+        query=test_item.get('model_input', ''),
+        response_a=test_item.get('output', ''),
+        response_b=ref_item.get('output', ''),
+        evaluation_type=evaluation_type,
+        tier=tier
+    )
 
 def create_evaluation_tasks(
     test_outputs: List[Dict],
@@ -176,20 +307,20 @@ def create_evaluation_tasks(
     evaluation_type: str,
     tier: Optional[int] = None
 ) -> List[EvaluationTask]:
-    """Create evaluation tasks from test and reference outputs."""
+    """Create evaluation tasks with improved error handling."""
     tasks = []
-    for test_item, ref_item in zip(test_outputs, reference_outputs):
-        tasks.append(EvaluationTask(
-            session_id=test_item['session_id'],
-            test_model=test_item['generator'],
-            reference_model=ref_item['generator'],
-            history=test_item['chat_history'],
-            query=test_item['model_input'],
-            response_a=test_item['output'],
-            response_b=ref_item['output'],
-            evaluation_type=evaluation_type,
-            tier=tier
-        ))
+    
+    logging.debug(f"Creating tasks for {len(test_outputs)} test outputs")
+    
+    for i, (test_item, ref_item) in enumerate(zip(test_outputs, reference_outputs)):
+        try:
+            task = create_evaluation_task(test_item, ref_item, evaluation_type, tier)
+            tasks.append(task)
+        except Exception as e:
+            logging.error(f"Error creating task {i}: {str(e)}")
+            continue
+    
+    logging.debug(f"Created {len(tasks)} tasks")
     return tasks
 
 def process_evaluations(
@@ -229,6 +360,9 @@ def process_evaluations(
         json.dump(results, f, indent=2)
 
 def main():
+    # Enable debug logging
+    logging.getLogger().setLevel(logging.DEBUG)
+    
     # Initialize Azure OpenAI client
     client = AzureOpenAI(
         api_key=openai_api_key,
@@ -236,67 +370,78 @@ def main():
         api_version=openai_api_version
     )
     
-    # Load prompt template
-    prompt_template = load_prompt_template("prompt_template.txt")
+    logging.getLogger().setLevel(logging.DEBUG)
     
-    # Initialize progress tracker
-    progress_tracker = ProgressTracker("evaluation_progress.pkl")
-    
-    base_path = "results"
-    
-    # Process randomized evaluations
-    randomized_path = os.path.join(base_path, "randomized")
-    for test_model in os.listdir(randomized_path):
-        model_path = os.path.join(randomized_path, test_model)
-        if os.path.isdir(model_path):
+    try:
+        # Initialize components
+        client = AzureOpenAI(
+            api_key=openai_api_key,
+            azure_endpoint=openai_azure_endpoint,
+            api_version=openai_api_version
+        )
+        
+        prompt_template = load_prompt_template("prompt_template.txt")
+        progress_tracker = ProgressTracker("evaluation_progress.pkl")
+        
+        # Test with a single file first
+        base_path = "results"
+        test_model = test_models[0]
+        model_path = os.path.join(base_path, "tiered", test_model)
+        
+        if os.path.exists(model_path):
+            # Load test files
             test_outputs_path = os.path.join(model_path, "model_outputs.json")
-            reference_outputs_path = os.path.join(randomized_path, "randomized_reference_outputs.json")
-            results_path = os.path.join(model_path, "evaluations.json")
+            reference_outputs_path = os.path.join(
+                base_path,
+                "tiered",
+                "tiered_references",
+                "tiered_reference_outputs_1.json"
+            )
             
+            # Load and inspect data
             test_outputs = load_json_file(test_outputs_path)
             reference_outputs = load_json_file(reference_outputs_path)
             
+            logging.debug(f"Sample test output: {test_outputs[0] if test_outputs else 'No test outputs'}")
+            logging.debug(f"Sample reference output: {reference_outputs[0] if reference_outputs else 'No reference outputs'}")
+            
+            # Create and process tasks
             tasks = create_evaluation_tasks(
-                test_outputs,
-                reference_outputs,
-                evaluation_type='randomized'
+                test_outputs[:1],  # Test with first item
+                reference_outputs[:1],
+                evaluation_type='tiered',
+                tier=1
             )
             
-            logging.info(f"Processing randomized evaluation for {test_model}")
-            process_evaluations(
-                client,
-                prompt_template,
-                tasks,
-                results_path,
-                progress_tracker
-            )
-    
-    # Process tiered evaluations
-    tiered_path = os.path.join(base_path, "tiered")
-    for test_model in os.listdir(tiered_path):
-        model_path = os.path.join(tiered_path, test_model)
-        if os.path.isdir(model_path):
-            test_outputs_path = os.path.join(model_path, "model_outputs.json")
-            test_outputs = load_json_file(test_outputs_path)
-            
-            for tier in range(1, 5):
-                reference_outputs_path = os.path.join(
-                    tiered_path,
-                    "tiered_references",
-                    f"tiered_reference_outputs_{tier}.json"
+            if tasks:
+                result = process_single_evaluation(
+                    client,
+                    prompt_template,
+                    tasks[0],
+                    progress_tracker
                 )
-                results_path = os.path.join(model_path, f"tier_{tier}", "evaluations.json")
+                logging.info(f"Test evaluation result: {result}")
+    
+        # Process randomized evaluations
+        randomized_path = os.path.join(base_path, "randomized")
+        for test_model in os.listdir(randomized_path):
+            # print(f"RANDOM TEST MODEL: {test_model}")
+            model_path = os.path.join(randomized_path, test_model)
+            if os.path.isdir(model_path):
+                test_outputs_path = os.path.join(model_path, "model_outputs.json")
+                reference_outputs_path = os.path.join(randomized_path, "randomized_reference_outputs.json")
+                results_path = os.path.join(model_path, "evaluations.json")
                 
+                test_outputs = load_json_file(test_outputs_path)
                 reference_outputs = load_json_file(reference_outputs_path)
                 
                 tasks = create_evaluation_tasks(
                     test_outputs,
                     reference_outputs,
-                    evaluation_type='tiered',
-                    tier=tier
+                    evaluation_type='randomized'
                 )
                 
-                logging.info(f"Processing tiered evaluation for {test_model} - Tier {tier}")
+                logging.info(f"Processing randomized evaluation for {test_model}")
                 process_evaluations(
                     client,
                     prompt_template,
@@ -304,6 +449,45 @@ def main():
                     results_path,
                     progress_tracker
                 )
-
+        
+        tiered_path = os.path.join(base_path, "tiered")
+        for test_model in test_models:
+            # print(f"TEST MODEL: {test_model}")
+            model_path = os.path.join(tiered_path, test_model)
+            # print(f"MODEL PATH: {model_path}")
+            if os.path.isdir(model_path):
+                test_outputs_path = os.path.join(model_path, "model_outputs.json")
+                # print(f"PATH: {test_outputs_path}")
+                test_outputs = load_json_file(test_outputs_path)
+                
+                for tier in range(1, 5):
+                    reference_outputs_path = os.path.join(
+                        tiered_path,
+                        "tiered_references",
+                        f"tiered_reference_outputs_{tier}.json"
+                    )
+                    results_path = os.path.join(model_path, f"tier_{tier}", "evaluations.json")
+                    
+                    reference_outputs = load_json_file(reference_outputs_path)
+                    
+                    tasks = create_evaluation_tasks(
+                        test_outputs,
+                        reference_outputs,
+                        evaluation_type='tiered',
+                        tier=tier
+                    )
+                    
+                    logging.info(f"Processing tiered evaluation for {test_model} - Tier {tier}")
+                    process_evaluations(
+                        client,
+                        prompt_template,
+                        tasks,
+                        results_path,
+                        progress_tracker
+                    )
+    except Exception as e:
+            logging.error(f"Error in main: {str(e)}", exc_info=True)
+            raise
+    
 if __name__ == "__main__":
     main()
