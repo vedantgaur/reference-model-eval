@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+zephyr-7b-beta,16.77018633540373,1.3175902755028839,community,1444,135,670,0,805,16.77018633540373,19.359284420717803,0.3285410971334116

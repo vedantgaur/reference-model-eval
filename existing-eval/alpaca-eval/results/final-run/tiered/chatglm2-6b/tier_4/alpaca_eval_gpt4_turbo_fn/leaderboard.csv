@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+chatglm2-6b,56.78704856787049,1.744775840239752,community,1027,454,345,4,803,56.78704856787049,52.34399629697174,0.15264914733370855

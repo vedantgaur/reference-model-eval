@@ -210,6 +210,7 @@ def call_azure_openai(
 ) -> str:
     """Make an API call to Azure OpenAI with retry logic and rate limiting."""
     for attempt in range(max_retries):
+        logging.info(f"Attempt {attempt + 1} of {max_retries}")  # Log current attempt number
         try:
             response = client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
@@ -256,19 +257,16 @@ def process_single_evaluation(
             raise ValueError(f"Generated prompt is not a string: {type(prompt)}")
             
         evaluation = call_azure_openai(client, prompt)
-        logging.info(f"Received evaluation for task: {task_id}")
-        
-        result = {
+        # Removed logging of evaluation result
+        progress_tracker.mark_completed(task_id)
+        return {
             'session_id': task.session_id,
             'test_model': task.test_model,
             'reference_model': task.reference_model,
             'evaluation_type': task.evaluation_type,
             'tier': task.tier,
-            'evaluation': evaluation
+            'evaluation': evaluation  # Still return the evaluation, but do not log it
         }
-        
-        progress_tracker.mark_completed(task_id)
-        return result
         
     except Exception as e:
         logging.error(f"Error processing task {task_id}: {str(e)}", exc_info=True)

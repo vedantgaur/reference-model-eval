@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+guanaco-33b,48.69565217391305,1.7627639270823008,community,1311,392,413,0,805,48.69565217391305,52.67285591522606,0.005332634792736693

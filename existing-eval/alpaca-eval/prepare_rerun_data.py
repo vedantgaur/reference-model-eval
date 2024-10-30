@@ -5,9 +5,9 @@ import logging
 from typing import List, Dict
 
 # Constants
-NUM_QUESTIONS = 200
+NUM_QUESTIONS = 805  # Updated from 200 to 805
 RESULTS_PATH = '/Users/vedantgaur/Projects/alpaca_eval/results'
-OUT_PATH = "results/new-run/"
+OUT_PATH = "results/final-run/"
 RANDOMIZED_PATH = os.path.join(OUT_PATH, "randomized")
 TIERED_PATH = os.path.join(OUT_PATH, "tiered")
 
@@ -79,26 +79,27 @@ def load_model_outputs(model: str) -> List[Dict]:
         logging.warning(f"Output file for {model} not found. Skipping.")
         return []
 
-def prepare_randomized_reference_outputs(all_models: List[str], num_questions: int, output_file: str) -> None:
-    randomized_outputs = []
-    selected_questions = random.sample(range(NUM_QUESTIONS), num_questions)
-    for i in selected_questions:
-        random_model = random.choice(all_models)
-        model_outputs = load_model_outputs(random_model)
-        if model_outputs and i < len(model_outputs):
-            output = model_outputs[i]
-            output['generator'] = random_model
-            randomized_outputs.append(output)
-        else:
-            logging.warning(f"Skipping question {i} due to missing data for model {random_model}")
+# def prepare_randomized_reference_outputs(all_models: List[str], num_questions: int, output_file: str) -> None:
+#     randomized_outputs = []
+#     selected_questions = random.sample(range(NUM_QUESTIONS), num_questions)
+#     for i in selected_questions:
+#         random_model = random.choice(all_models)
+#         model_outputs = load_model_outputs(random_model)
+#         if model_outputs and i < len(model_outputs):
+#             output = model_outputs[i]
+#             output['generator'] = random_model
+#             randomized_outputs.append(output)
+#         else:
+#             logging.warning(f"Skipping question {i} due to missing data for model {random_model}")
 
-    with open(output_file, 'w') as f:
-        json.dump(randomized_outputs, f, indent=2)
-    logging.info(f"Randomized reference outputs saved to {output_file}")
+#     with open(output_file, 'w') as f:
+#         json.dump(randomized_outputs, f, indent=2)
+#     logging.info(f"Randomized reference outputs saved to {output_file}")
 
 def prepare_tiered_reference_outputs(tiered_models: List[str], num_questions: int, output_dir: str) -> List[str]:
     tier_files = []
-    selected_questions = random.sample(range(NUM_QUESTIONS), num_questions)
+    # Use all questions instead of a random sample
+    selected_questions = range(NUM_QUESTIONS)  # Changed to include all questions
     for i, model in enumerate(tiered_models):
         outputs = []
         model_outputs = load_model_outputs(model)
@@ -119,7 +120,8 @@ def prepare_tiered_reference_outputs(tiered_models: List[str], num_questions: in
     return tier_files
 
 def prepare_test_model_outputs(test_models: List[str], num_questions: int) -> None:
-    selected_questions = random.sample(range(NUM_QUESTIONS), num_questions)
+    # Use all questions instead of a random sample
+    selected_questions = range(NUM_QUESTIONS)  # Changed to include all questions
     for model in test_models:
         model_outputs = load_model_outputs(model)
         
@@ -133,7 +135,7 @@ def prepare_test_model_outputs(test_models: List[str], num_questions: int) -> No
         for tier_num in range(1, 5):
             os.makedirs(os.path.join(tiered_model_dir, f'tier_{tier_num}'), exist_ok=True)
 
-        # Select the same random questions for each model
+        # Select all questions for each model
         selected_outputs = [model_outputs[i] for i in selected_questions if i < len(model_outputs)]
 
         # Prepare output file for randomized evaluation
@@ -147,15 +149,15 @@ def prepare_test_model_outputs(test_models: List[str], num_questions: int) -> No
             json.dump(selected_outputs, f, indent=2)
 
         logging.info(f"Prepared output files for {model}")
-        
+
 def main():
     # Create necessary directories
     os.makedirs(RANDOMIZED_PATH, exist_ok=True)
     os.makedirs(TIERED_PATH, exist_ok=True)
 
     # Prepare randomized reference outputs
-    randomized_reference_file = os.path.join(RANDOMIZED_PATH, "randomized_reference_outputs.json")
-    prepare_randomized_reference_outputs(all_models, NUM_QUESTIONS, randomized_reference_file)
+    # randomized_reference_file = os.path.join(RANDOMIZED_PATH, "randomized_reference_outputs.json")
+    # prepare_randomized_reference_outputs(all_models, NUM_QUESTIONS, randomized_reference_file)
 
     # Prepare tiered reference outputs
     tiered_output_dir = os.path.join(TIERED_PATH, "tiered_references")
@@ -172,10 +174,10 @@ def main():
     for test_model in test_models:
         print(f"\n--- Commands for {test_model} ---")
         
-        # Command for randomized output
-        print("\nRandomized Evaluation:")
-        randomized_output_path = os.path.join(OUT_PATH, "randomized", test_model)
-        print(f"alpaca_eval --model_outputs {os.path.join(RANDOMIZED_PATH, test_model, 'model_outputs.json')} --reference_outputs {randomized_reference_file} --annotators_config alpaca_eval_gpt4_turbo_fn --output_path {randomized_output_path}")
+        # # Command for randomized output
+        # print("\nRandomized Evaluation:")
+        # randomized_output_path = os.path.join(OUT_PATH, "randomized", test_model)
+        # print(f"alpaca_eval --model_outputs {os.path.join(RANDOMIZED_PATH, test_model, 'model_outputs.json')} --reference_outputs {randomized_reference_file} --annotators_config alpaca_eval_gpt4_turbo_fn --output_path {randomized_output_path}")
         
         # Commands for tiered models
         print("\nTiered Evaluations:")

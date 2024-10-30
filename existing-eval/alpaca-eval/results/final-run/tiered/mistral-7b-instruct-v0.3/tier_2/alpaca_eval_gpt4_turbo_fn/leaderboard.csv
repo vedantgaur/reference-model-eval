@@ -1,0 +1,2 @@
+,win_rate,standard_error,mode,avg_length,n_wins,n_wins_base,n_draws,n_total,discrete_win_rate,length_controlled_winrate,lc_standard_error
+Mistral-7B-Instruct-v0.3,57.7639751552795,1.7397566270811011,community,1581,464,339,2,805,57.7639751552795,58.03280905828767,0.047950443237307336
